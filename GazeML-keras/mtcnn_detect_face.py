@@ -39,8 +39,13 @@ import os
 
 def layer(op):
     """Decorator for composable network layers."""
+    print(op)
 
     def layer_decorated(self, *args, **kwargs):
+        ###args contiene los argumentos numericos de la función ej. (3,3,10,1,1)
+        ###kargs contiene los argumentos nombrados ej. {'padding': 'VALID', 'relu': False, 'name': 'conv1'}
+        #print(args ,'-----args layer_decorated')
+        #print(kwargs)
         # Automatically set a name if not provided.
         name = kwargs.setdefault('name', self.get_unique_name(op.__name__))
         # Figure out the layer inputs.
@@ -49,14 +54,21 @@ def layer(op):
         elif len(self.terminals) == 1:
             layer_input = self.terminals[0]
         else:
-            layer_input = list(self.terminals)
+            layer_input = list(self.terminals)#Previous layer
+
+        #print(layer_input,'--layer input')
+        ### op() se refiere a la función de layer que se esta llamando ej. conv, relu, max_pool
         # Perform the operation and get the output.
-        layer_output = op(self, layer_input, *args, **kwargs)
+        layer_output = op(self, layer_input, *args, **kwargs)#New layer
+        #print(layer_output,'--layer output')
         # Add to layer LUT.
+        #print(self.layers, '--before')#accumulated layers. 
         self.layers[name] = layer_output
         # This output is now the input for the next layer.
         self.feed(layer_output)
+        print(self.layers,'--after')#accumulated layers.
         # Return self for chained calls.
+        print('----layer_decorated----')
         return self
 
     return layer_decorated
@@ -72,6 +84,8 @@ class Network(object):
         self.layers = dict(inputs)
         # If true, the resulting variables are set as trainable
         self.trainable = trainable
+        #print(self.layers)
+        #print('---init---')
 
         self.setup()
 
@@ -92,6 +106,8 @@ class Network(object):
                 for param_name, data in iteritems(data_dict[op_name]):
                     try:
                         var = tfv1.get_variable(param_name)
+                        #print(var,'----var')
+                        #print(data)
                         session.run(var.assign(data))
                     except ValueError:
                         if not ignore_missing:
@@ -101,6 +117,7 @@ class Network(object):
         """Set the input(s) for the next operation by replacing the terminal nodes.
         The arguments can be either layer names or the actual layers.
         """
+        #print(args,'---args feed')
         assert len(args) != 0
         self.terminals = []
         for fed_layer in args:
@@ -110,6 +127,7 @@ class Network(object):
                 except KeyError:
                     raise KeyError('Unknown layer name fed: %s' % fed_layer)
             self.terminals.append(fed_layer)
+        #print(self.terminals, '----terminals feed')
         return self
 
     def get_output(self):
@@ -147,6 +165,7 @@ class Network(object):
         # Verify that the padding is acceptable
         self.validate_padding(padding)
         # Get the number of channels in the input
+        print(inp,'--input conv')
         c_i = int(inp.get_shape()[-1])
         # Verify that the grouping parameter is valid
         assert c_i % group == 0
@@ -164,24 +183,30 @@ class Network(object):
             if relu:
                 # ReLU non-linearity
                 output = tf.nn.relu(output, name=scope.name)
+            print(output,'---out conv')
             return output
 
     @layer
     def prelu(self, inp, name):
+        print(inp,'---input prelu')
         with tfv1.variable_scope(name):
             i = int(inp.get_shape()[-1])
             alpha = self.make_var('alpha', shape=(i,))
             output = tf.nn.relu(inp) + tf.multiply(alpha, -tf.nn.relu(-inp))
+        print(output,'---out prelu')
         return output
 
     @layer
     def max_pool(self, inp, k_h, k_w, s_h, s_w, name, padding='SAME'):
         self.validate_padding(padding)
-        return tf.nn.max_pool(inp,
+        print(inp,'---input maxpool')
+        output = tf.nn.max_pool(inp,
                               ksize=[1, k_h, k_w, 1],
                               strides=[1, s_h, s_w, 1],
                               padding=padding,
                               name=name)
+        print(output,'---out maxpool')
+        return output
 
     @layer
     def fc(self, inp, num_out, name, relu=True):
@@ -210,14 +235,18 @@ class Network(object):
     """
     @layer
     def softmax(self, target, axis, name=None):
+        print(target, '---target softmax')
         max_axis = tf.reduce_max(target, axis, keepdims=True)
         target_exp = tf.exp(target-max_axis)
         normalize = tf.reduce_sum(target_exp, axis, keepdims=True)
         softmax = tfv1.div(target_exp, normalize, name)
+        print(softmax, '---out softmax')
         return softmax
     
 class PNet(Network):
     def setup(self):
+        #Cada que se manda llamar una función que están como larte de @layer, se manda llamar la función layer.layer_decorated()
+        #esta función, a su vez manda llamar la función feed()
         (self.feed('data') #pylint: disable=no-value-for-parameter, no-member
              .conv(3, 3, 10, 1, 1, padding='VALID', relu=False, name='conv1')
              .prelu(name='PReLU1')
