@@ -78,6 +78,22 @@ class MTCNNFaceDetector():
             resized_image = image.copy()
         return resized_image, scale_factor
     
+    def cropImage(self, image, lms):
+        left_eye_xy = np.array([lms[6], lms[1]])
+        right_eye_xy = np.array([lms[5], lms[0]])
+        dist_eyes = np.linalg.norm(left_eye_xy - right_eye_xy)
+        eye_bbox_w = (dist_eyes / 1.25)
+        eye_bbox_h = (eye_bbox_w *0.6)
+        left_eye_im = image[
+            int(left_eye_xy[0]-eye_bbox_h//2):int(left_eye_xy[0]+eye_bbox_h//2),
+            int(left_eye_xy[1]-eye_bbox_w//2):int(left_eye_xy[1]+eye_bbox_w//2), :]
+        #left_eye_im = left_eye_im[:,::-1,:] # No need for flipping left eye for iris detection
+        right_eye_im = image[
+            int(right_eye_xy[0]-eye_bbox_h//2):int(right_eye_xy[0]+eye_bbox_h//2),
+            int(right_eye_xy[1]-eye_bbox_w//2):int(right_eye_xy[1]+eye_bbox_w//2), :]
+
+        return left_eye_im, right_eye_im
+
     @staticmethod
     def is_higher_than_480p(x):
         return (x.shape[0] * x.shape[1]) >= (858*480)
