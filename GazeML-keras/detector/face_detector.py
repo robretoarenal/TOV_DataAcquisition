@@ -5,8 +5,10 @@ from keras import backend as K
 import numpy as np
 import cv2
 import os
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
 
-class MTCNNFaceDetector():
+class MTCNNFaceDetector(BaseEstimator, TransformerMixin):
     """
     This class load the MTCNN network and perform face detection.
     
@@ -18,7 +20,21 @@ class MTCNNFaceDetector():
         self.rnet = None
         self.onet = None
         self.create_mtcnn(sess, model_path)
-        
+
+    def fit(self, img):
+        return self
+    
+    def transform(self, img):
+        #model_path="./mtcnn_weights/"
+        #mtcnn = self.create_mtcnn(sess, model_path)
+        #mtcnn.detect_face()
+        face, lms = self.detect_face(img)
+        assert len(face) >= 1, "No face detected"
+
+        left_eye_im, right_eye_im = self.cropImage(img,lms)
+
+        return left_eye_im,right_eye_im
+
     def create_mtcnn(self, sess, model_path):
         if not model_path:
             model_path, _ = os.path.split(os.path.realpath(__file__))
@@ -27,7 +43,9 @@ class MTCNNFaceDetector():
             tfv1.disable_eager_execution()
             data = tfv1.placeholder(tf.float32, (None,None,None,3), 'input')
             pnet = mtcnn_detect_face.PNet({'data':data})
+            #print(pnet)
             pnet.load(os.path.join(model_path, 'det1.npy'), sess)
+            #print(pnet.layers)
         with tfv1.variable_scope('rnet'):
             data = tfv1.placeholder(tf.float32, (None,24,24,3), 'input')
             rnet = mtcnn_detect_face.RNet({'data':data})
@@ -152,3 +170,14 @@ class MTCNNFaceDetector():
         new_faces = np.array(new_faces)
         new_pnts = np.array(new_pnts).transpose()
         return new_faces, new_pnts
+
+def fd_pipeline(img):
+    mtcnn_weights_dir = "./mtcnn_weights"
+    pipeline = Pipeline([
+            ('facedetector', MTCNNFaceDetector(sess=tf.compat.v1.keras.backend.get_session(), model_path=mtcnn_weights_dir))#,
+            #('isFace', CombinedAttributesAdder()),
+            #('cropImage', StandardScaler()),
+        ])
+
+    lms = pipeline.fit_transform(img)
+    return lms

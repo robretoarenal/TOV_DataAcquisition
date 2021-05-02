@@ -39,7 +39,7 @@ import os
 
 def layer(op):
     """Decorator for composable network layers."""
-    print(op)
+    #print(op)
 
     def layer_decorated(self, *args, **kwargs):
         ###args contiene los argumentos numericos de la función ej. (3,3,10,1,1)
@@ -66,9 +66,9 @@ def layer(op):
         self.layers[name] = layer_output
         # This output is now the input for the next layer.
         self.feed(layer_output)
-        print(self.layers,'--after')#accumulated layers.
+        #print(self.layers,'--after')#accumulated layers.
         # Return self for chained calls.
-        print('----layer_decorated----')
+        #print('----layer_decorated----')
         return self
 
     return layer_decorated
@@ -105,6 +105,7 @@ class Network(object):
             with tfv1.variable_scope(op_name, reuse=True):
                 for param_name, data in iteritems(data_dict[op_name]):
                     try:
+                        #print(op_name, param_name)
                         var = tfv1.get_variable(param_name)
                         #print(var,'----var')
                         #print(data)
@@ -165,7 +166,7 @@ class Network(object):
         # Verify that the padding is acceptable
         self.validate_padding(padding)
         # Get the number of channels in the input
-        print(inp,'--input conv')
+        #print(inp,'--input conv')
         c_i = int(inp.get_shape()[-1])
         # Verify that the grouping parameter is valid
         assert c_i % group == 0
@@ -175,6 +176,7 @@ class Network(object):
         with tfv1.variable_scope(name) as scope:
             kernel = self.make_var('weights', shape=[k_h, k_w, c_i // group, c_o])
             # This is the common-case. Convolve the input without any further complications.
+            #print('kernel----', kernel)
             output = convolve(inp, kernel)
             # Add the biases
             if biased:
@@ -183,29 +185,29 @@ class Network(object):
             if relu:
                 # ReLU non-linearity
                 output = tf.nn.relu(output, name=scope.name)
-            print(output,'---out conv')
+            #print(output,'---out conv')
             return output
 
     @layer
     def prelu(self, inp, name):
-        print(inp,'---input prelu')
+        #print(inp,'---input prelu')
         with tfv1.variable_scope(name):
             i = int(inp.get_shape()[-1])
             alpha = self.make_var('alpha', shape=(i,))
             output = tf.nn.relu(inp) + tf.multiply(alpha, -tf.nn.relu(-inp))
-        print(output,'---out prelu')
+        #print(output,'---out prelu')
         return output
 
     @layer
     def max_pool(self, inp, k_h, k_w, s_h, s_w, name, padding='SAME'):
         self.validate_padding(padding)
-        print(inp,'---input maxpool')
+        #print(inp,'---input maxpool')
         output = tf.nn.max_pool(inp,
                               ksize=[1, k_h, k_w, 1],
                               strides=[1, s_h, s_w, 1],
                               padding=padding,
                               name=name)
-        print(output,'---out maxpool')
+        #print(output,'---out maxpool')
         return output
 
     @layer
@@ -235,12 +237,12 @@ class Network(object):
     """
     @layer
     def softmax(self, target, axis, name=None):
-        print(target, '---target softmax')
+        #print(target, '---target softmax')
         max_axis = tf.reduce_max(target, axis, keepdims=True)
         target_exp = tf.exp(target-max_axis)
         normalize = tf.reduce_sum(target_exp, axis, keepdims=True)
         softmax = tfv1.div(target_exp, normalize, name)
-        print(softmax, '---out softmax')
+        #print(softmax, '---out softmax')
         return softmax
     
 class PNet(Network):
