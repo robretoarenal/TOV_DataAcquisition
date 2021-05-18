@@ -1,0 +1,14 @@
+MANIFEST.in
+README.md
+setup.py
+EyeDiagnosisLib.egg-info/PKG-INFO
+EyeDiagnosisLib.egg-info/SOURCES.txt
+EyeDiagnosisLib.egg-info/dependency_links.txt
+EyeDiagnosisLib.egg-info/top_level.txt
+GazeML_keras/accuracy-92size100x100_Threshold_0.56.h5
+GazeML_keras/diagnose.py
+GazeML_keras/mtcnn_detect_face.py
+GazeML_keras/detector/face_detector.py
+GazeML_keras/mtcnn_weights/det1.npy
+GazeML_keras/mtcnn_weights/det2.npy
+GazeML_keras/mtcnn_weights/det3.npy
