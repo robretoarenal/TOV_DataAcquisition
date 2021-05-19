@@ -1,0 +1,4 @@
+include GazeML_keras/mtcnn_weights/det1.npy
+include GazeML_keras/mtcnn_weights/det2.npy
+include GazeML_keras/mtcnn_weights/det3.npy
+include GazeML_keras/accuracy-92size100x100_Threshold_0.56.h5
